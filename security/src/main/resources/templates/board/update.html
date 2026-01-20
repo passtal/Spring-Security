@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <meta name="_csrf" th:content="${_csrf.token}">
+  <meta name="_csrf_header" th:content="${_csrf.headerName}">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>게시판 프로젝트</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+  <main>
+    <div class="container py-5">
+      <div class="row justify-content-center">
+        <div class="col-12 col-md-10 col-lg-6">
+          <h1 class="text-center">게시글 수정</h1>
+          <form id="form" action="/board/update" method="post" th:object="${board}">
+            <input type="hidden" id="no" th:field="*{no}">
+            <input type="hidden" th:field="*{id}">
+            <div class="mb-3">
+              <label for="" class="form-label">제목</label>
+              <input type="text" class="form-control" th:field="*{title}"
+                    id="title" aria-describedby="helpTitle" placeholder="제목을 입력해주세요"
+                    required
+                      />
+            </div>
+            <div class="mb-3">
+              <label for="" class="form-label">작성자</label>
+              <input type="text" class="form-control" th:value="*{user.name}"
+                      aria-describedby="helpWriter" readonly
+                      />
+            </div>
+            <div class="mb-3">
+              <label for="" class="form-label">내용</label>
+              <textarea class="form-control" th:field="*{content}" id="content" rows="5"></textarea>
+            </div>
+            <div class="d-grid gap-2 d-md-flex justify-content-center mt-2">
+              <button type="submit" class="btn btn-primary w-100">수정</button>
+            </div>
+            <div class="d-grid gap-2 d-md-flex justify-content-center mt-2">
+              <button type="button" class="btn btn-outline-primary w-100" onclick="moveList()">목록</button>
+              <button type="button" class="btn btn-outline-danger w-100" onclick="actionDelete()">삭제</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </main>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
+
+ <script>
+    // CSRF 토큰 가져오기
+    const csrfHeader = document.querySelector("meta[name='_csrf_header']").getAttribute("content");
+    const csrfToken = document.querySelector("meta[name='_csrf']").getAttribute("content");
+
+    const form = document.getElementById("form");
+    
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault(); 
+    
+      const data = {
+        no: document.getElementById("no").value,
+        id: document.getElementById("id").value,
+        title: document.getElementById("title").value,
+        // writer는 readonly라 값이 필요없거나, 필요하다면 hidden으로 넘겨야 함
+        content: document.getElementById("content").value
+      };
+    
+      try {
+        // 요청 주소: /board/update -> /board (Controller @PutMapping("") 매핑)
+        const response = await fetch("/board", {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            [csrfHeader]: csrfToken // CSRF 헤더 추가
+          },
+          body: JSON.stringify(data)
+        });
+    
+        if (!response.ok) throw new Error("수정 실패: " + response.status);
+    
+        alert("게시글이 수정되었습니다.");
+        location.href = "/board"; // 목록 주소 /board 로 통일
+    
+      } catch (err) {
+        alert(err.message);
+      }
+    });
+    
+    async function actionDelete() {
+      if (!confirm("정말로 삭제하시겠습니까?")) return;
+    
+      const id = '[[${board.id}]]'; // id 값은 타임리프로 안전하게 가져옴
+    
+      try {
+        // 요청 주소: /board/delete/{id} -> /board/{id} (Controller @DeleteMapping("/{id}"))
+        const response = await fetch(`/board/${id}`, {
+          method: "DELETE",
+          headers: {
+             [csrfHeader]: csrfToken // DELETE 요청도 CSRF 토큰 필요
+          }
+        });
+    
+        if (!response.ok) throw new Error("삭제 실패");
+    
+        alert("삭제되었습니다.");
+        location.href = "/board";
+    
+      } catch (err) {
+        alert(err.message);
+      }
+    }
+    
+    function moveList() {
+      location.href = "/board";
+    }
+</script>
+
+</body>
+</html>
